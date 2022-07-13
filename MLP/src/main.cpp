@@ -10,6 +10,21 @@ double global_best_cost;
 
 #define ORIGIN_VERTEX 1
 
+class ReoptData
+{
+    public: 
+    std::vector< std::vector<int> > w;
+    std::vector< std::vector<double> > t;
+    std::vector< std::vector<double> > c;
+
+    ReoptData(int dimension)
+    {
+        this->w = std::vector<std::vector<int> > (dimension,std::vector<int>(dimension,0));
+        this->t = std::vector<std::vector<double> > (dimension,std::vector<double>(dimension,0));
+        this->c = std::vector<std::vector<double> > (dimension,std::vector<double>(dimension,0));
+    }
+};
+
 enum Neighborhood
 {
     SWAP,
@@ -31,16 +46,15 @@ int main(int argc, char **argv){
 
     readData(argc, argv, &dimension, &matrix);
 
+    clock_t begin_time = clock();
+
     s = construction(0.20);
 
 
-    std::cout << "COST: " << get_total_cost(s) << std::endl;
+    clock_t end_time = clock();
 
-    for(auto k : s)
-    {
-        std::cout << k << " ";
-    }
-    std::cout << std::endl;
+    std::cout << "COST: " << get_total_cost(s) << std::endl;
+    std::cout << "TIME: " << (double)(end_time - begin_time) / CLOCKS_PER_SEC << std::endl;
 
     return 0;
 }

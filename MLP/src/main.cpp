@@ -2,6 +2,8 @@
 #include "../include/readData.h"
 #include <vector>
 #include <algorithm>
+#include <limits>
+#include <ctime>
 
 double **matrix;
 int dimension;
@@ -104,6 +106,8 @@ class ReoptData
 #define _OR_OPT2_SIZE 2
 #define _OR_OPT3_SIZE 3
 
+#define MAX_ALPHA_PERCENT 26
+
 enum Neighborhood
 {
     SWAP,
@@ -119,9 +123,12 @@ ReoptData reopt;
 
 void initialize_candidate_list(std::vector<int> &candidate_list);
 std::vector<int> construction(const double alpha);
-void RVND(std::vector<int>&s, double current_cost);
+void RVND(std::vector<int>&s, double &current_cost);
 void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, double &rvnd_cost);
 void reinsertion(std::vector<int>&s, int i, int j, const int subroute_size);
+std::vector<int> Perturb(std::vector<int> s);
+void double_bridge(std::vector<int>&s, int i, int j);
+std::vector<int> GILS_RVND(const int Imax, const int Iils, std::vector<double>R);
 
 double get_total_cost(std::vector<int>s);
 double get_latency(std::vector<int>s);
@@ -324,25 +331,87 @@ int main(int argc, char **argv){
 
     clock_t begin_time = clock();
 
-    s = construction(0.20);
 
-    double current_cost = get_total_cost(s);
+    const int Imax = 50;
+    int Iils = (dimension >= 150) ? dimension / 2 : dimension;
+    std::vector<double> R(MAX_ALPHA_PERCENT);
 
-    RVND(s, current_cost); 
+    for(int i = 0; i < MAX_ALPHA_PERCENT; i++)
+        R[i] = (double)i/100;
+
+
+    s = GILS_RVND(Imax, Iils, R);
+
+
+    // s = construction(0.20);
+
+    // double current_cost = get_total_cost(s);
+
+    // RVND(s, current_cost); 
 
     // reopt = ReoptData(s, dimension);
 
     // test_or_opt2(s);
 
     clock_t end_time = clock();
-
+    for(auto k : s)
+        std::cout << k  << " ";
+    std::cout << std::endl;
     std::cout << "COST: " << get_total_cost(s) << std::endl;
     std::cout << "TIME: " << (double)(end_time - begin_time) / CLOCKS_PER_SEC << std::endl;
 
     return 0;
 }
 
-void RVND(std::vector<int>&s, double current_cost)
+std::vector<int> GILS_RVND(const int Imax, const int Iils, std::vector<double>R)
+{
+    std::vector<int> final_s, s, s1;
+    double alpha, cost, cost1;
+    int iterILS;
+    global_best_cost = std::numeric_limits<double>::max();
+
+    srand(time(NULL));
+
+    for(size_t i = 0; i < Imax; i++)
+    {
+        alpha = R[rand() % R.size()];
+        s = construction(alpha);
+
+        s1 = s;
+
+        cost = cost1 = get_total_cost(s1);
+
+
+        iterILS = 0;
+        while(iterILS < Iils)
+        {
+            RVND(s, cost);
+
+            if(cost < cost1)
+            {
+                s1 = s;
+                cost1 = cost;
+                iterILS = 0;
+            }
+
+            s = Perturb(s1);
+
+            cost = get_total_cost(s);
+
+            iterILS++;
+        }
+
+        if(cost1 < global_best_cost)
+        {
+            final_s = s1;
+            global_best_cost = cost1;
+        }
+    }
+
+    return final_s;
+}
+
+void RVND(std::vector<int>&s, double &current_cost)
 {
     std::vector<int> s1 = s;
     std::vector<Neighborhood> NL = g_NL;
@@ -414,6 +483,14 @@ void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, dou
                         choosed_index_2 = j;
                         best_cost_found = cost;
                     }
+
+                    // std::vector<int>s1 = s;
+                    // std::swap(s1[i], s1[j]);
+
+                    // double f = get_total_cost(s1);
+
+                    // if(f != cost)
+                    //     std::cout << "(SWAP) - Diferentes!\n";
                 }
             }
 
@@ -437,6 +514,14 @@ void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, dou
                         choosed_index_2 = j;
                         best_cost_found = cost;
                     }
+
+                    // std::vector<int>s1 = s;
+                    // reverse(s1.begin()+i, s1.begin()+j+1);
+
+                    // double f = get_total_cost(s1);
+
+                    // if(f != cost)
+                    //     std::cout << "(2-OPT) - Diferentes!\n";
                 }
             }
 
@@ -473,6 +558,14 @@ void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, dou
                         choosed_index_2 = j;
                         best_cost_found = cost;
                     }
+
+                    // std::vector<int>s1 = s;
+                    // reinsertion(s1, i, j, subroute_size);
+
+                    // double f = get_total_cost(s1);
+
+                    // if(f != cost)
+                    //     std::cout << "(REINSERTION) - Diferentes!\n";
                 }
             }
 
@@ -509,6 +602,14 @@ void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, dou
                         choosed_index_2 = j;
                         best_cost_found = cost;
                     }
+
+                    // std::vector<int>s1 = s;
+                    // reinsertion(s1, i, j, subroute_size);
+
+                    // double f = get_total_cost(s1);
+
+                    // if(f != cost)
+                    //     std::cout << "(OR-OPT2) - Diferentes!\n";
                 }
             }
 
@@ -545,6 +646,14 @@ void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, dou
                         choosed_index_2 = j;
                         best_cost_found = cost;
                     }
+
+                    // std::vector<int>s1 = s;
+                    // reinsertion(s1, i, j, subroute_size);
+
+                    // double f = get_total_cost(s1);
+
+                    // if(f != cost)
+                    //     std::cout << "(OR-OPT3) - Diferentes!\n";
                 }
             }
 
@@ -556,6 +665,34 @@ void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, dou
         break;
     }
 
+}
+
+std::vector<int> Perturb(std::vector<int> s)
+{
+    int i,j;
+
+    i = rand() % (s.size() - 4) + 1;
+    j = rand() % (s.size() - 4) + 1;
+
+    if(i == j)
+    {
+        if(i + 2 <= s.size() - 1 - 2){
+            j += 2;
+        }else{
+            j -= 2;
+        }
+    }
+
+    double_bridge(s, i, j);
+
+    return s;
+}
+
+void double_bridge(std::vector<int>&s, int i, int j)
+{
+    int n = 2;
+
+    std::swap_ranges(s.begin() + i, s.begin() + i + n, s.begin() + j);
 }
 
 void reinsertion(std::vector<int>&s, int i, int j, const int subroute_size)

@@ -450,6 +450,8 @@ void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, dou
     int choosed_index_1, choosed_index_2;
     size_t subroute_size;
 
+    SubSeqInfo ss1,ss2,ss3,ssr0,ssr1,ssr2,ssr3;
+
     best_cost_found = rvnd_cost;
 
     size_t route_size = s.size();
@@ -459,20 +461,22 @@ void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, dou
         case SWAP:
             for(int i = 1; i < route_size - 2; i++)
             {
+                ssr0 = SubSeqInfo(0,i-1,reopt.w[0][i-1], reopt.t[0][i-1], reopt.c[0][i-1]);
+                ssr1 = SubSeqInfo(i, i, reopt.w[i][i], reopt.t[i][i], reopt.c[i][i]);
                 for(int j = i + 1; j < route_size - 1; j++)
                 {
                     if(abs(j - i) == 1) /*are neighbors*/
                     {
                         /*merge here*/
-                        SubSeqInfo ss1 = merge_subseq(s, SubSeqInfo(0,i-1,reopt.w[0][i-1], reopt.t[0][i-1], reopt.c[0][i-1]), SubSeqInfo(j,j,reopt.w[j][j], reopt.t[j][j], reopt.c[j][j]));
-                        SubSeqInfo ss2 = merge_subseq(s, SubSeqInfo(i, i, reopt.w[i][i], reopt.t[i][i], reopt.c[i][i]), SubSeqInfo(j+1, route_size - 1, reopt.w[j+1][route_size-1], reopt.t[j+1][route_size-1], reopt.c[j+1][route_size-1]));
+                        ss1 = merge_subseq(s, ssr0, SubSeqInfo(j,j,reopt.w[j][j], reopt.t[j][j], reopt.c[j][j]));
+                        ss2 = merge_subseq(s, ssr1, SubSeqInfo(j+1, route_size - 1, reopt.w[j+1][route_size-1], reopt.t[j+1][route_size-1], reopt.c[j+1][route_size-1]));
 
                         cost = merge_subseq(s, ss1, ss2).c;
                     }else{
                         /*merge here*/
-                        SubSeqInfo ss1 = merge_subseq(s, SubSeqInfo(0, i -1, reopt.w[0][i-1], reopt.t[0][i-1], reopt.c[0][i-1]), SubSeqInfo(j,j,reopt.w[j][j], reopt.t[j][j], reopt.c[j][j]));
-                        SubSeqInfo ss2 = merge_subseq(s, SubSeqInfo(i+1, j-1, reopt.w[i+1][j-1], reopt.t[i+1][j-1], reopt.c[i+1][j-1]), SubSeqInfo(i, i, reopt.w[i][i], reopt.t[i][i], reopt.c[i][i]));
-                        SubSeqInfo ss3 = merge_subseq(s, ss1, ss2);
+                        ss1 = merge_subseq(s, ssr0, SubSeqInfo(j,j,reopt.w[j][j], reopt.t[j][j], reopt.c[j][j]));
+                        ss2 = merge_subseq(s, SubSeqInfo(i+1, j-1, reopt.w[i+1][j-1], reopt.t[i+1][j-1], reopt.c[i+1][j-1]), ssr1);
+                        ss3 = merge_subseq(s, ss1, ss2);
 
                         cost = merge_subseq(s, ss3, SubSeqInfo(j+1, route_size-1, reopt.w[j+1][route_size-1], reopt.t[j+1][route_size-1], reopt.c[j+1][route_size-1])).c;
                     }
@@ -503,9 +507,10 @@ void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, dou
         case _2_OPT:
             for(int i = 1; i < route_size - _2_OPT_MIN_SIZE - 1; i++)
             {
+                ssr0 = SubSeqInfo(0,i-1, reopt.w[0][i-1], reopt.t[0][i-1], reopt.c[0][i-1]);
                 for(int j = i+_2_OPT_MIN_SIZE; j < route_size - 1; j++)
                 {
-                    SubSeqInfo ss1 = merge_subseq(s, SubSeqInfo(0,i-1, reopt.w[0][i-1], reopt.t[0][i-1], reopt.c[0][i-1]), SubSeqInfo(j,i, reopt.w[j][i], reopt.t[j][i], reopt.c[j][i]));
+                    ss1 = merge_subseq(s, ssr0, SubSeqInfo(j,i, reopt.w[j][i], reopt.t[j][i], reopt.c[j][i]));
                     cost = merge_subseq(s, ss1, SubSeqInfo(j+1,route_size-1, reopt.w[j+1][route_size-1], reopt.t[j+1][route_size-1], reopt.c[j+1][route_size-1])).c;
 
                     if(cost < best_cost_found)
@@ -535,17 +540,20 @@ void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, dou
             subroute_size = REINSERTION_SIZE;
             for(int i = 1; i < route_size - subroute_size - 1; i++)
             {
+                ssr0 = SubSeqInfo(0, i - 1, reopt.w[0][i-1], reopt.t[0][i-1], reopt.c[0][i-1]);
+                ssr1 = SubSeqInfo(i, i+subroute_size-1, reopt.w[i][i+subroute_size-1], reopt.t[i][i+subroute_size-1], reopt.c[i][i+subroute_size-1]);
+                ssr2 = SubSeqInfo(i+subroute_size, route_size-1, reopt.w[i+subroute_size][route_size-1], reopt.t[i+subroute_size][route_size-1], reopt.c[i+subroute_size][route_size-1]);
                 for(int j = 1; j < route_size - 1; j++)
                 {
                     if(j >= i + subroute_size + 1){
-                        SubSeqInfo ss1 = merge_subseq(s, SubSeqInfo(0, i - 1, reopt.w[0][i-1], reopt.t[0][i-1], reopt.c[0][i-1]), SubSeqInfo(i+subroute_size, j-1, reopt.w[i+subroute_size][j-1], reopt.t[i+subroute_size][j-1], reopt.c[i+subroute_size][j-1]));
-                        SubSeqInfo ss2 = merge_subseq(s, SubSeqInfo(i, i+subroute_size-1, reopt.w[i][i+subroute_size-1], reopt.t[i][i+subroute_size-1], reopt.c[i][i+subroute_size-1]), SubSeqInfo(j, route_size-1, reopt.w[j][route_size-1], reopt.t[j][route_size-1], reopt.c[j][route_size-1]));
+                        ss1 = merge_subseq(s, ssr0, SubSeqInfo(i+subroute_size, j-1, reopt.w[i+subroute_size][j-1], reopt.t[i+subroute_size][j-1], reopt.c[i+subroute_size][j-1]));
+                        ss2 = merge_subseq(s, ssr1, SubSeqInfo(j, route_size-1, reopt.w[j][route_size-1], reopt.t[j][route_size-1], reopt.c[j][route_size-1]));
 
                         cost = merge_subseq(s, ss1, ss2).c;
                     }else if(j < i){
                         /*merge here*/
-                        SubSeqInfo ss1 = merge_subseq(s, SubSeqInfo(0, j-1, reopt.w[0][j-1], reopt.t[0][j-1], reopt.c[0][j-1]), SubSeqInfo(i, i+subroute_size-1, reopt.w[i][i+subroute_size-1], reopt.t[i][i+subroute_size-1], reopt.c[i][i+subroute_size-1]));
-                        SubSeqInfo ss2 = merge_subseq(s, SubSeqInfo(j, i-1, reopt.w[j][i-1], reopt.t[j][i-1], reopt.c[j][i-1]), SubSeqInfo(i+subroute_size, route_size-1, reopt.w[i+subroute_size][route_size-1], reopt.t[i+subroute_size][route_size-1], reopt.c[i+subroute_size][route_size-1]));
+                        ss1 = merge_subseq(s, SubSeqInfo(0, j-1, reopt.w[0][j-1], reopt.t[0][j-1], reopt.c[0][j-1]), ssr1);
+                        ss2 = merge_subseq(s, SubSeqInfo(j, i-1, reopt.w[j][i-1], reopt.t[j][i-1], reopt.c[j][i-1]), ssr2);
 
                         cost = merge_subseq(s, ss1, ss2).c;
                     }else{
@@ -579,17 +587,20 @@ void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, dou
             subroute_size = _OR_OPT2_SIZE;
             for(int i = 1; i < route_size - subroute_size - 1; i++)
             {
+                ssr0 = SubSeqInfo(0, i - 1, reopt.w[0][i-1], reopt.t[0][i-1], reopt.c[0][i-1]);
+                ssr1 = SubSeqInfo(i, i+subroute_size-1, reopt.w[i][i+subroute_size-1], reopt.t[i][i+subroute_size-1], reopt.c[i][i+subroute_size-1]);
+                ssr2 = SubSeqInfo(i+subroute_size, route_size-1, reopt.w[i+subroute_size][route_size-1], reopt.t[i+subroute_size][route_size-1], reopt.c[i+subroute_size][route_size-1]);
                 for(int j = 1; j < route_size - 1; j++)
                 {
                     if(j >= i + subroute_size + 1){
-                        SubSeqInfo ss1 = merge_subseq(s, SubSeqInfo(0, i - 1, reopt.w[0][i-1], reopt.t[0][i-1], reopt.c[0][i-1]), SubSeqInfo(i+subroute_size, j-1, reopt.w[i+subroute_size][j-1], reopt.t[i+subroute_size][j-1], reopt.c[i+subroute_size][j-1]));
-                        SubSeqInfo ss2 = merge_subseq(s, SubSeqInfo(i, i+subroute_size-1, reopt.w[i][i+subroute_size-1], reopt.t[i][i+subroute_size-1], reopt.c[i][i+subroute_size-1]), SubSeqInfo(j, route_size-1, reopt.w[j][route_size-1], reopt.t[j][route_size-1], reopt.c[j][route_size-1]));
+                        ss1 = merge_subseq(s, ssr0, SubSeqInfo(i+subroute_size, j-1, reopt.w[i+subroute_size][j-1], reopt.t[i+subroute_size][j-1], reopt.c[i+subroute_size][j-1]));
+                        ss2 = merge_subseq(s, ssr1, SubSeqInfo(j, route_size-1, reopt.w[j][route_size-1], reopt.t[j][route_size-1], reopt.c[j][route_size-1]));
 
                         cost = merge_subseq(s, ss1, ss2).c;
                     }else if(j < i){
                         /*merge here*/
-                        SubSeqInfo ss1 = merge_subseq(s, SubSeqInfo(0, j-1, reopt.w[0][j-1], reopt.t[0][j-1], reopt.c[0][j-1]), SubSeqInfo(i, i+subroute_size-1, reopt.w[i][i+subroute_size-1], reopt.t[i][i+subroute_size-1], reopt.c[i][i+subroute_size-1]));
-                        SubSeqInfo ss2 = merge_subseq(s, SubSeqInfo(j, i-1, reopt.w[j][i-1], reopt.t[j][i-1], reopt.c[j][i-1]), SubSeqInfo(i+subroute_size, route_size-1, reopt.w[i+subroute_size][route_size-1], reopt.t[i+subroute_size][route_size-1], reopt.c[i+subroute_size][route_size-1]));
+                        ss1 = merge_subseq(s, SubSeqInfo(0, j-1, reopt.w[0][j-1], reopt.t[0][j-1], reopt.c[0][j-1]), ssr1);
+                        ss2 = merge_subseq(s, SubSeqInfo(j, i-1, reopt.w[j][i-1], reopt.t[j][i-1], reopt.c[j][i-1]), ssr2);
 
                         cost = merge_subseq(s, ss1, ss2).c;
                     }else{
@@ -609,7 +620,7 @@ void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, dou
                     // double f = get_total_cost(s1);
 
                     // if(f != cost)
-                    //     std::cout << "(OR-OPT2) - Diferentes!\n";
+                    //     std::cout << "(REINSERTION) - Diferentes!\n";
                 }
             }
 
@@ -623,17 +634,20 @@ void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, dou
             subroute_size = _OR_OPT3_SIZE;
             for(int i = 1; i < route_size - subroute_size - 1; i++)
             {
+                ssr0 = SubSeqInfo(0, i - 1, reopt.w[0][i-1], reopt.t[0][i-1], reopt.c[0][i-1]);
+                ssr1 = SubSeqInfo(i, i+subroute_size-1, reopt.w[i][i+subroute_size-1], reopt.t[i][i+subroute_size-1], reopt.c[i][i+subroute_size-1]);
+                ssr2 = SubSeqInfo(i+subroute_size, route_size-1, reopt.w[i+subroute_size][route_size-1], reopt.t[i+subroute_size][route_size-1], reopt.c[i+subroute_size][route_size-1]);
                 for(int j = 1; j < route_size - 1; j++)
                 {
                     if(j >= i + subroute_size + 1){
-                        SubSeqInfo ss1 = merge_subseq(s, SubSeqInfo(0, i - 1, reopt.w[0][i-1], reopt.t[0][i-1], reopt.c[0][i-1]), SubSeqInfo(i+subroute_size, j-1, reopt.w[i+subroute_size][j-1], reopt.t[i+subroute_size][j-1], reopt.c[i+subroute_size][j-1]));
-                        SubSeqInfo ss2 = merge_subseq(s, SubSeqInfo(i, i+subroute_size-1, reopt.w[i][i+subroute_size-1], reopt.t[i][i+subroute_size-1], reopt.c[i][i+subroute_size-1]), SubSeqInfo(j, route_size-1, reopt.w[j][route_size-1], reopt.t[j][route_size-1], reopt.c[j][route_size-1]));
+                        ss1 = merge_subseq(s, ssr0, SubSeqInfo(i+subroute_size, j-1, reopt.w[i+subroute_size][j-1], reopt.t[i+subroute_size][j-1], reopt.c[i+subroute_size][j-1]));
+                        ss2 = merge_subseq(s, ssr1, SubSeqInfo(j, route_size-1, reopt.w[j][route_size-1], reopt.t[j][route_size-1], reopt.c[j][route_size-1]));
 
                         cost = merge_subseq(s, ss1, ss2).c;
                     }else if(j < i){
                         /*merge here*/
-                        SubSeqInfo ss1 = merge_subseq(s, SubSeqInfo(0, j-1, reopt.w[0][j-1], reopt.t[0][j-1], reopt.c[0][j-1]), SubSeqInfo(i, i+subroute_size-1, reopt.w[i][i+subroute_size-1], reopt.t[i][i+subroute_size-1], reopt.c[i][i+subroute_size-1]));
-                        SubSeqInfo ss2 = merge_subseq(s, SubSeqInfo(j, i-1, reopt.w[j][i-1], reopt.t[j][i-1], reopt.c[j][i-1]), SubSeqInfo(i+subroute_size, route_size-1, reopt.w[i+subroute_size][route_size-1], reopt.t[i+subroute_size][route_size-1], reopt.c[i+subroute_size][route_size-1]));
+                        ss1 = merge_subseq(s, SubSeqInfo(0, j-1, reopt.w[0][j-1], reopt.t[0][j-1], reopt.c[0][j-1]), ssr1);
+                        ss2 = merge_subseq(s, SubSeqInfo(j, i-1, reopt.w[j][i-1], reopt.t[j][i-1], reopt.c[j][i-1]), ssr2);
 
                         cost = merge_subseq(s, ss1, ss2).c;
                     }else{
@@ -653,7 +667,7 @@ void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, dou
                     // double f = get_total_cost(s1);
 
                     // if(f != cost)
-                    //     std::cout << "(OR-OPT3) - Diferentes!\n";
+                    //     std::cout << "(REINSERTION) - Diferentes!\n";
                 }
             }
 

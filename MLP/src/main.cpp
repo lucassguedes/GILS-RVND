@@ -12,6 +12,17 @@ double global_best_cost;
 
 #define ORIGIN_VERTEX 1
 
+class Candidate{
+    public:
+    int vertex;
+    double distance_to_origin;
+
+    Candidate(int vertex, double distance_to_origin){
+        this->vertex = vertex;
+        this->distance_to_origin = distance_to_origin;
+    }
+};
+
 class SubSeqInfo{
     public:
     int begin_vertex;
@@ -147,7 +158,7 @@ enum Neighborhood
 
 ReoptData reopt;
 
-void initialize_candidate_list(std::vector<int> &candidate_list);
+void initialize_candidate_list(std::vector<Candidate> &candidate_list, int root);
 std::vector<int> construction(const double alpha);
 void RVND(std::vector<int>&s, double &current_cost);
 void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, double &rvnd_cost, int &best_i, int &best_j);
@@ -265,9 +276,9 @@ void RVND(std::vector<int>&s, double &current_cost)
         else
             random_index = rand() % NL.size();
 
-        random_neigborhood = NL[random_index];
+        // random_neigborhood = NL[random_index];
 
-        find_best_neighbor(random_neigborhood, s1, rvnd_cost, best_i, best_j);
+        find_best_neighbor(NL[random_index], s1, rvnd_cost, best_i, best_j);
 
         if(rvnd_cost < current_cost)
         {
@@ -584,39 +595,50 @@ void reinsertion(std::vector<int>&s, int i, int j, const int subroute_size)
     s.insert(s.begin()+j, subroute.begin(), subroute.end());
 }
 
+bool by_distance_to_root(Candidate a, Candidate b)
+{
+    return a.distance_to_origin < b.distance_to_origin;
+}
+
 
 std::vector<int> construction(const double alpha)
 {
     std::vector<int> s = {ORIGIN_VERTEX};
-    std::vector<int> candidate_list;
+    std::vector<Candidate> candidate_list;
     int size_of_rcl, random_index;
 
-    initialize_candidate_list(candidate_list);
-
     int root = ORIGIN_VERTEX;
+
+    initialize_candidate_list(candidate_list, root);
 
     while(!candidate_list.empty())
     {
         /*Sorting the candidate list according to their distances to current root*/
-        std::sort(candidate_list.begin(), candidate_list.end(), [root, s](int a, int b){return matrix[root][a] < matrix[root][b];});
+        std::sort(candidate_list.begin(), candidate_list.end(), by_distance_to_root);
 
         size_of_rcl = alpha * candidate_list.size();
         random_index = (size_of_rcl == 0) ? 0 : rand() % size_of_rcl;
 
-        root = candidate_list[random_index];
+        root = candidate_list[random_index].vertex;
         s.push_back(root);
         candidate_list.erase(candidate_list.begin() + random_index);
+
+        for(size_t i = 0; i < candidate_list.size(); i++)
+        {
+            candidate_list[i].distance_to_origin = matrix[candidate_list[i].vertex][root];
+        }
     }
     s.push_back(ORIGIN_VERTEX);
 
     return s;
 }
 
-void initialize_candidate_list(std::vector<int> &candidate_list)
+void initialize_candidate_list(std::vector<Candidate> &candidate_list, int root)
 {
     for(size_t i = 2; i <= dimension; i++)
     {
-        candidate_list.push_back(i);
+        candidate_list.push_back(Candidate(i, matrix[i][root]));
+        
     }
 }
 

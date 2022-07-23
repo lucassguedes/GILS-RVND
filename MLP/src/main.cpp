@@ -86,31 +86,27 @@ class ReoptData
     void fill_reopt_data(std::vector<int>s)
     {
         for(int i = 0; i <= dimension; i++)
-            this->w[i][i] = (i > 0);
+            this->w[i][i] = (s[i] != 0);
 
-        for(int i = 0, k = dimension; i < dimension; i++, k--)
+        for(int i = 0; i < dimension; i++)
         {
-            for(int j = i+1, u = k - 1; j <= dimension; j++, u--)
+            for(int j = i+1; j <= dimension; j++)
             {
                 this->w[i][j] = this->w[i][j-1] + this->w[j][j];
                 this->t[i][j] = this->t[i][j-1] + matrix[s[j-1]][s[j]] + this->t[j][j];
                 this->c[i][j] = this->c[i][j-1] + this->w[j][j]*(this->t[i][j-1] + matrix[s[j-1]][s[j]]) + this->c[j][j];
-
-                this->w[k][u] = this->w[k][u+1] + this->w[u][u];
-                this->t[k][u] = this->t[k][u+1] + matrix[s[u+1]][s[u]] + this->t[u][u];
-                this->c[k][u] = this->c[k][u+1] + this->w[u][u]*(this->t[k][u+1] + matrix[s[u+1]][s[u]]) + this->c[u][u];
             }
         }
 
-        // for(int i = dimension; i > 1 ; i--)
-        // {
-        //     for(int j = i-1; j >= 0 ; j--)
-        //     {
-        //         this->w[i][j] = this->w[i][j+1] + this->w[j][j];
-        //         this->t[i][j] = this->t[i][j+1] + matrix[s[j+1]][s[j]] + this->t[j][j];
-        //         this->c[i][j] = this->c[i][j+1] + this->w[j][j]*(this->t[i][j+1] + matrix[s[j+1]][s[j]]) + this->c[j][j];
-        //     }
-        // }
+        for(int i = dimension; i > 0 ; i--)
+        {
+            for(int j = i-1; j >= 0 ; j--)
+            {
+                this->w[i][j] = this->w[i][j+1] + this->w[j][j];
+                this->t[i][j] = this->t[i][j+1] + matrix[s[j+1]][s[j]] + this->t[j][j];
+                this->c[i][j] = this->c[i][j+1] + this->w[j][j]*(this->t[i][j+1] + matrix[s[j+1]][s[j]]) + this->c[j][j];
+            }
+        }
     }
 
     void update_reopt_data(std::vector<int> &s, int best_i, int best_j)
@@ -170,6 +166,34 @@ std::vector<int> GILS_RVND(const int Imax, const int Iils, std::vector<double>R)
 double get_total_cost(std::vector<int>s);
 double get_latency(std::vector<int>s);
 
+void test_cost_c(std::vector<int>s, ReoptData reopt)
+{
+    std::vector<int>s1;
+    size_t seqsize = s.size();
+    double cost1, cost2;
+    for(size_t i = 0; i < seqsize; i++)
+    {
+        for(size_t j = i+1; j < seqsize; j++)
+        {   
+            s1.clear();
+            s1.resize((j+1) - i);
+            std::copy(s.begin()+i, s.begin()+j+1, s1.begin());
+
+            // std::reverse(s1.begin(), s1.end());
+            cost1 = get_total_cost(s1); 
+            // cost1 = get_latency(s1);
+            // cost2 = reopt.c[j][i];
+            cost2 = reopt.c[i][j];
+            // cost2 = reopt.t[i][j];
+
+            if(cost1 != cost2)
+                std::cout << "DIFERENTES - i = " << i << ", j = " << j <<std::endl;   
+            else 
+                std::cout << "IGUAIS - i = " << i << ", j = " << j <<std::endl;
+        }
+    }
+}
+
 int main(int argc, char **argv){
     std::vector<int> s;
 
@@ -189,13 +213,15 @@ int main(int argc, char **argv){
     s = GILS_RVND(Imax, Iils, R);
 
 
-    // s = construction(0.20);
 
+    // s = construction(0.20);
+    // reopt = ReoptData(s);
+
+    // test_cost_c(s,reopt);
     // double current_cost = get_total_cost(s);
 
     // RVND(s, current_cost); 
 
-    // reopt = ReoptData(s, dimension);
 
     // test_or_opt2(s);
 
@@ -286,10 +312,28 @@ void RVND(std::vector<int>&s, double &current_cost)
             current_cost = rvnd_cost;
             NL = {SWAP, _2_OPT, REINSERTION, OR_OPT2, OR_OPT3};
             // reopt.update_reopt_data(s, best_i, best_j);
+            // ReoptData reopt2 = reopt;
             reopt = ReoptData(s);
+
+            // for(int i = 0; i <= dimension; i++)
+            // {
+            //     for(int j = 0; j <= dimension; j++)
+            //     {   
+            //         if(reopt2.c[i][j] != reopt.c[i][j])
+            //         {
+            //             std::cout << "\033[31m";
+            //         }else{
+            //             std::cout << "\033[0m";
+            //         }
+            //         printf("%5.0f ", reopt.c[i][j]);
+            //     }
+            //     std::cout << std::endl; 
+                
+            // }
+            // exit(-1);
         }else{
-            s1 = s;
-            rvnd_cost = current_cost;
+            // s1 = s;
+            // rvnd_cost = current_cost;
             NL.erase(NL.begin() + random_index);
         }
     }
@@ -301,7 +345,7 @@ void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, dou
     int choosed_index_1, choosed_index_2;
     size_t subroute_size;
 
-    SubSeqInfo ss1,ss2,ss3,ss4,ss5,ss6,ssr0,ssr1,ssr2,ssr3;
+    SubSeqInfo ss1,ss2,ss3,ss4,ss5,ss6,ssr0,ssr1,ssr2;
 
     best_cost_found = rvnd_cost;
 
@@ -595,7 +639,7 @@ void reinsertion(std::vector<int>&s, int i, int j, const int subroute_size)
     s.insert(s.begin()+j, subroute.begin(), subroute.end());
 }
 
-bool by_distance_to_root(Candidate a, Candidate b)
+bool by_distance_to_root(Candidate &a, Candidate &b)
 {
     return a.distance_to_origin < b.distance_to_origin;
 }
@@ -647,12 +691,11 @@ double get_total_cost(std::vector<int>s)
 {
     double total_cost = 0;
     double latency = 0;
-    size_t seqsize = s.size();
+    size_t seqsize = s.size() - 1;
 
-    for(size_t i = 0; i < seqsize - 1; i++)
+    for(int i = 0; i < seqsize; i++)
     {
-        latency += matrix[s[i]][s[i+1]];
-        total_cost += latency;
+        total_cost += (seqsize - i) * matrix[s[i]][s[i+1]];
     }
 
     return total_cost;

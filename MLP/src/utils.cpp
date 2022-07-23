@@ -165,29 +165,3 @@
 // }
 
 
-// void test_cost_c(std::vector<int>s, ReoptData reopt)
-// {
-//     std::vector<int>s1;
-//     size_t seqsize = s.size();
-//     double cost1, cost2;
-//     for(size_t i = 0; i < seqsize; i++)
-//     {
-//         for(size_t j = i+1; j < seqsize; j++)
-//         {   
-//             s1.clear();
-//             s1.resize((j+1) - i);
-//             std::copy(s.begin()+i, s.begin()+j+1, s1.begin());
-
-//             std::reverse(s1.begin(), s1.end());
-//             cost1 = get_total_cost(s1); 
-//             // cost1 = get_latency(s1);
-//             cost2 = reopt.c[j][i];
-//             // cost2 = reopt.t[i][j];
-
-//             if(cost1 != cost2)
-//                 std::cout << "DIFERENTES - i = " << i << ", j = " << j <<std::endl;   
-//             else 
-//                 std::cout << "IGUAIS - i = " << i << ", j = " << j <<std::endl;
-//         }
-//     }
-// }

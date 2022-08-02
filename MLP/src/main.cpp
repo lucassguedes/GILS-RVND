@@ -109,11 +109,11 @@ class ReoptData
         }
     }
 
-    void update_reopt_data(std::vector<int> &s, int best_i, int best_j)
+    void neo_update_reopt_data(std::vector<int> &s, int best_i, int best_j)
     {
-        for(int i = best_i; i < dimension; i++)
+        for(int i = 0; i <= best_j; i++)
         {
-            for(int j = 0; j < best_j; j++)
+            for(int j = i+1; j <= dimension; j++)
             {
                 this->w[i][j] = this->w[i][j-1] + this->w[j][j];
                 this->t[i][j] = this->t[i][j-1] + matrix[s[j-1]][s[j]] + this->t[j][j];
@@ -121,14 +121,55 @@ class ReoptData
             }
         }
 
-        for(int i = 0;  i < best_j; i++)
+        int bj;
+
+        for(int i = dimension; i >= best_i; i--)
         {
-            for(int j = best_i; j <= dimension; j++)
+            bj = (best_j <= i - 1) ? best_j : i-1;
+            for(int j = i-1; j >= 0; j--)
+            {
+                this->w[i][j] = this->w[i][j+1] + this->w[j][j];
+                this->t[i][j] = this->t[i][j+1] + matrix[s[j+1]][s[j]] + this->t[j][j];
+                this->c[i][j] = this->c[i][j+1] + this->w[j][j]*(this->t[i][j+1] + matrix[s[j+1]][s[j]]) + this->c[j][j];
+                // this->c[i][j] = this->c[i][j+1] + this->w[j][j]*(this->t[j][j+1] + matrix[s[j+1]][s[j]]) + this->c[j][j];
+            }
+        }
+
+        
+    }
+
+    void update_reopt_data(std::vector<int> &s, int best_i, int best_j)
+    {
+        /*1st group*/
+        int j1;
+        for(int i = 0; i < best_j; i++){
+            for(int j = best_j; j < dimension; j++)
             {
                 this->w[i][j] = this->w[i][j-1] + this->w[j][j];
                 this->t[i][j] = this->t[i][j-1] + matrix[s[j-1]][s[j]] + this->t[j][j];
                 this->c[i][j] = this->c[i][j-1] + this->w[j][j]*(this->t[i][j-1] + matrix[s[j-1]][s[j]]) + this->c[j][j];
             }
+        }
+
+        for(int i = best_j; i <= best_i; i++)
+        {
+            for(int j = 0; j < dimension; j++)
+            {
+                this->w[i][j] = this->w[i][i] + this->w[i-1][j];
+                this->t[i][j] = this->t[i][i] + matrix[s[i]][s[i-1]] + this->t[i-1][j];
+                this->c[i][j] = this->c[i][i] + this->w[i-1][j]*(this->t[i][i] + matrix[s[i]][s[i-1]]) + this->c[i-1][j];
+            }
+        }
+
+        for(int i = best_i + 1; i < dimension; i++)
+        {
+            for(int j = 0; j <= best_i; j++)
+            {
+                this->w[i][j] = this->w[i][i] + this->w[i-1][j];
+                this->t[i][j] = this->t[i][i] + matrix[s[i]][s[i-1]] + this->t[i-1][j];
+                this->c[i][j] = this->c[i][i] + this->w[i-1][j]*(this->t[i][i] + matrix[s[i]][s[i-1]]) + this->c[i-1][j];
+            }
+
         }
 
     }
@@ -165,6 +206,30 @@ std::vector<int> GILS_RVND(const int Imax, const int Iils, std::vector<double>R)
 
 double get_total_cost(std::vector<int>s);
 double get_latency(std::vector<int>s);
+
+bool compare_reopts(ReoptData r1, ReoptData r2)
+{
+    bool was_different = false;
+    for(int i = 0; i <= dimension; i++)
+    {
+        for(int j = 0; j <= dimension; j++)
+        {   
+            if(r1.c[i][j] != r2.c[i][j])
+            {
+                was_different = true;
+                std::cout << "\033[31m";
+            }else{
+                std::cout << "\033[0m";
+            }
+            printf("%5.0f ", r1.t[i][j]);
+        }
+        std::cout << std::endl; 
+        
+    }
+
+    return was_different;
+}
+
 
 void test_cost_c(std::vector<int>s, ReoptData reopt)
 {
@@ -217,7 +282,6 @@ int main(int argc, char **argv){
     // s = construction(0.20);
     // reopt = ReoptData(s);
 
-    // test_cost_c(s,reopt);
     // double current_cost = get_total_cost(s);
 
     // RVND(s, current_cost); 
@@ -308,29 +372,49 @@ void RVND(std::vector<int>&s, double &current_cost)
 
         if(rvnd_cost < current_cost)
         {
-            s = s1;
             current_cost = rvnd_cost;
-            NL = {SWAP, _2_OPT, REINSERTION, OR_OPT2, OR_OPT3};
-            // reopt.update_reopt_data(s, best_i, best_j);
-            // ReoptData reopt2 = reopt;
-            reopt = ReoptData(s);
 
-            // for(int i = 0; i <= dimension; i++)
+            if(best_i > best_j)
+                std::swap(best_i, best_j);
+
+            if(NL[random_index] == OR_OPT2)
+                best_j += _OR_OPT2_SIZE - 1;
+            else if(NL[random_index] == OR_OPT3)
+                best_j += _OR_OPT3_SIZE - 1;
+
+
+            NL = {SWAP, _2_OPT, REINSERTION, OR_OPT2, OR_OPT3};
+            // ReoptData reopt2 = ReoptData(s);
+            s = s1;
+                
+
+            reopt.neo_update_reopt_data(s1, best_i, best_j);
+            // reopt2.neo_update_reopt_data(s1, best_i, best_j);
+            // reopt = ReoptData(s);
+
+
+            // if(true)
+            // if(NL[random_index] == OR_OPT2 || NL[random_index] == OR_OPT3)
             // {
-            //     for(int j = 0; j <= dimension; j++)
-            //     {   
-            //         if(reopt2.c[i][j] != reopt.c[i][j])
-            //         {
-            //             std::cout << "\033[31m";
-            //         }else{
-            //             std::cout << "\033[0m";
-            //         }
-            //         printf("%5.0f ", reopt.c[i][j]);
-            //     }
-            //     std::cout << std::endl; 
+            //     // std::cout << "OR-OPT";
+
+            //     // if(NL[random_index] == OR_OPT2)
+            //     //     std::cout << "-2\n";
+            //     // else
+            //     //     std::cout << "-3\n";
+
+            //     std::cout << "best_i = " << best_i << ", best_j = " << best_j << std::endl;
+
+            //     if(compare_reopts(reopt, reopt2))
+            //         exit(-1);
                 
             // }
-            // exit(-1);
+
+
+            
+
+            // reopt.update_reopt_data(s1, best_i, best_j);
+
         }else{
             // s1 = s;
             // rvnd_cost = current_cost;
@@ -354,6 +438,7 @@ void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, dou
     switch(neighborhood)
     {
         case SWAP:
+            // std::cout << "SWAP\n";
             for(int i = 1; i < route_size - 2; i++)
             {
                 ssr0 = SubSeqInfo(0,i-1,reopt.w[0][i-1], reopt.t[0][i-1], reopt.c[0][i-1]);
@@ -405,6 +490,7 @@ void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, dou
             }
         break;
         case _2_OPT:
+            // std::cout << "2-OPT\n";
             for(int i = 1; i < route_size - _2_OPT_MIN_SIZE - 1; i++)
             {
                 ssr0 = SubSeqInfo(0,i-1, reopt.w[0][i-1], reopt.t[0][i-1], reopt.c[0][i-1]);
@@ -439,6 +525,7 @@ void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, dou
             }
         break;
         case REINSERTION:
+            // std::cout << "REINSERTION\n";
             subroute_size = REINSERTION_SIZE;
             for(int i = 1; i < route_size - subroute_size - 1; i++)
             {
@@ -490,6 +577,7 @@ void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, dou
             }
         break;
         case OR_OPT2:
+            // std::cout << "OR-OPT-2\n";
             subroute_size = _OR_OPT2_SIZE;
             for(int i = 1; i < route_size - subroute_size - 1; i++)
             {
@@ -541,6 +629,7 @@ void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, dou
             }
         break;
         case OR_OPT3:
+            // std::cout << "OR-OPT-3\n";
             subroute_size = _OR_OPT3_SIZE;
             for(int i = 1; i < route_size - subroute_size - 1; i++)
             {

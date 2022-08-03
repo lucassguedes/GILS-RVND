@@ -96,7 +96,6 @@ class ReoptData
                 this->w[i][j] = this->w[i][j+1] + this->w[j][j];
                 this->t[i][j] = this->t[i][j+1] + matrix[s[j+1]][s[j]] + this->t[j][j];
                 this->c[i][j] = this->c[i][j+1] + this->w[j][j]*(this->t[i][j+1] + matrix[s[j+1]][s[j]]) + this->c[j][j];
-                // this->c[i][j] = this->c[i][j+1] + this->w[j][j]*(this->t[j][j+1] + matrix[s[j+1]][s[j]]) + this->c[j][j];
             }
         }
 
@@ -119,8 +118,6 @@ enum Neighborhood
     OR_OPT2,
     OR_OPT3,
 };//Values to be used in RVND
-
-// std::vector<Neighborhood> g_NL = {SWAP, _2_OPT, REINSERTION, OR_OPT2, OR_OPT3};
 
 void initialize_candidate_list(std::vector<Candidate> &candidate_list, int root);
 std::vector<int> construction(const double alpha);
@@ -273,6 +270,8 @@ void RVND(std::vector<int>&s, double &current_cost)
 
         }else{
             NL.erase(NL.begin() + random_index);
+            rvnd_cost = current_cost;
+            s1 = s;
         }
     }
 }

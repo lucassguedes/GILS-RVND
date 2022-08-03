@@ -23,41 +23,6 @@ class Candidate{
     }
 };
 
-class SubSeqInfo{
-    public:
-    int begin_vertex;
-    int end_vertex;
-
-    int w;
-    double t;
-    double c;
-
-    SubSeqInfo(int begin_vertex, int end_vertex, int w, double t, double c){
-        this->begin_vertex = begin_vertex;
-        this->end_vertex = end_vertex;
-
-        this->w = w;
-        this->t = t;
-        this->c = c;
-    }
-
-    SubSeqInfo(){}
-};
-
-SubSeqInfo merge_subseq(std::vector<int> &s, SubSeqInfo &ss1, SubSeqInfo &ss2)
-{
-    SubSeqInfo result;
-
-    result.begin_vertex = ss1.begin_vertex;
-    result.end_vertex = ss2.end_vertex;
-
-    result.w = ss1.w + ss2.w;
-    result.t = ss1.t + matrix[s[ss1.end_vertex]][s[ss2.begin_vertex]] + ss2.t;
-    result.c = ss1.c + ss2.w * (ss1.t + matrix[s[ss1.end_vertex]][s[ss2.begin_vertex]]) + ss2.c;
-
-    return result;
-}
-
 class ReoptData
 {
     public: 
@@ -126,7 +91,7 @@ class ReoptData
         for(int i = dimension; i >= best_i; i--)
         {
             bj = (best_j <= i - 1) ? best_j : i-1;
-            for(int j = i-1; j >= 0; j--)
+            for(int j = bj; j >= 0; j--)
             {
                 this->w[i][j] = this->w[i][j+1] + this->w[j][j];
                 this->t[i][j] = this->t[i][j+1] + matrix[s[j+1]][s[j]] + this->t[j][j];
@@ -157,12 +122,10 @@ enum Neighborhood
 
 // std::vector<Neighborhood> g_NL = {SWAP, _2_OPT, REINSERTION, OR_OPT2, OR_OPT3};
 
-ReoptData reopt;
-
 void initialize_candidate_list(std::vector<Candidate> &candidate_list, int root);
 std::vector<int> construction(const double alpha);
 void RVND(std::vector<int>&s, double &current_cost);
-void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, double &rvnd_cost, int &best_i, int &best_j);
+void find_best_neighbor(ReoptData &reopt, const Neighborhood neighborhood, std::vector<int>&s, double &rvnd_cost, int &best_i, int &best_j);
 void reinsertion(std::vector<int>&s, int i, int j, const int subroute_size);
 std::vector<int> Perturb(std::vector<int> s);
 void double_bridge(std::vector<int>&s, int i, int j);
@@ -211,18 +174,6 @@ int main(int argc, char **argv){
 
 
     s = GILS_RVND(Imax, Iils, R);
-
-
-
-    // s = construction(0.20);
-    // reopt = ReoptData(s);
-
-    // double current_cost = get_total_cost(s);
-
-    // RVND(s, current_cost); 
-
-
-    // test_or_opt2(s);
 
     clock_t end_time = clock();
     for(auto k : s)
@@ -289,7 +240,7 @@ void RVND(std::vector<int>&s, double &current_cost)
     int random_index;
     int best_i, best_j;
 
-    reopt = ReoptData(s1); /*Initialize re-optimization data structures*/
+    ReoptData reopt = ReoptData(s1); /*Initialize re-optimization data structures*/
     
     double rvnd_cost = current_cost = reopt.c[0][dimension];
 
@@ -300,7 +251,7 @@ void RVND(std::vector<int>&s, double &current_cost)
         else
             random_index = rand() % NL.size();
 
-        find_best_neighbor(NL[random_index], s1, rvnd_cost, best_i, best_j);
+        find_best_neighbor(reopt, NL[random_index], s1, rvnd_cost, best_i, best_j);
 
         if(rvnd_cost < current_cost)
         {
@@ -326,7 +277,7 @@ void RVND(std::vector<int>&s, double &current_cost)
     }
 }
 
-void find_best_neighbor(const Neighborhood neighborhood, std::vector<int>&s, double &rvnd_cost, int &best_i, int &best_j)
+void find_best_neighbor(ReoptData &reopt, const Neighborhood neighborhood, std::vector<int>&s, double &rvnd_cost, int &best_i, int &best_j)
 {
     double cost, best_cost_found;
     int choosed_index_1, choosed_index_2;
